@@ -10,7 +10,7 @@ public class Vigenere {
 		// TODO Auto-generated method stub
 		Scanner scan = new Scanner(System.in);
 		String plainText = "", encoded = "", decoded = "", key = null;
-		System.out.println("Note: This program will work for any message/key used with/without spaces, caps/without caps.");
+		System.out.println("Note: This program will work for any message/key used with/without spaces, with/without caps.");
 		
 		System.out.println("Please enter the message you wish to encrypt (i.e.\"TO BE OR NOT TO BE" 
 				+ " THAT IS THE QUESTION\").");

@@ -8,12 +8,12 @@ public class UserCarRental {
 	public UserCarRental() {
 		Scanner scan = new Scanner(System.in);
 		String name = null, size = null; 
-		int zip = 00000, duration = 0;
+		int zip, duration;
 		
 		System.out.println("Hello and thank you for renting with us!");
 		
-		System.out.println("Please enter your first name: ");
-		name = scan.next();
+		System.out.println("Please enter your full name: ");
+		name = scan.nextLine();
 		
 		System.out.println("Please enter a 5 digit Zip Code: ");
 		zip = scan.nextInt();
@@ -35,8 +35,8 @@ public class UserCarRental {
 		scan.close();
 	}
 	
-//	public static void main(String[] args) {
-//		@SuppressWarnings("unused")
-//		UserCarRental main = new UserCarRental();
-//	}
+	public static void main(String[] args) {
+		@SuppressWarnings("unused")
+		UserCarRental main = new UserCarRental();
+	}
 }

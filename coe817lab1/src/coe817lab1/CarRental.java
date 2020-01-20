@@ -90,7 +90,7 @@ public class CarRental {
 	}
 
 	public double getTotalRentalFee() {
-		return totalRentalFee;
+		return this.totalRentalFee;
 	}
 
 	public void setTotalRentalFee(double totalRentalFee) {
