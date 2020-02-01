@@ -43,15 +43,15 @@ public class JEncrypRSA {
 			// encrypt the message
 			encryptedOutput = rsaCipherObj.doFinal(userInput);
 			//print to screen the encrypted message byte code.
-			System.out.println("Encrypted byte code " + encryptedOutput.toString());
-			System.out.println("Encrypted string format: " + new String(encryptedOutput));
+			System.out.println("\n" + "Encrypted byte code " + encryptedOutput.toString() + "\n");
+			System.out.println("Encrypted string format: " + new String(encryptedOutput) + "\n");
 			// set the cipher object to decrypt operation mode and reinitialize.
 			rsaCipherObj.init(Cipher.DECRYPT_MODE, privateKey);
 			// decrypt the message
 			decryptedOutput = rsaCipherObj.doFinal(encryptedOutput);
 			//print to screen the decrypted message byte code.
-			System.out.println("Decrypted byte code " + decryptedOutput.toString());
-			System.out.println("Decrypted string format: " + new String(decryptedOutput));
+			System.out.println("Decrypted byte code " + decryptedOutput.toString() + "\n");
+			System.out.println("Decrypted string format: " + new String(decryptedOutput)+ "\n");
 		}catch (InvalidKeyException | NoSuchPaddingException | NoSuchAlgorithmException | 
 				IllegalBlockSizeException | BadPaddingException e) {
 			e.printStackTrace();
