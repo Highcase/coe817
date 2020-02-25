@@ -20,7 +20,7 @@ public class FileUtility {
    
     public static byte[] getFile(String filepath) {
 
-        File f = new File(filepath);
+        File f = new File(filepath).getAbsoluteFile();
         InputStream inputStream = null;
         try {
             inputStream = new FileInputStream(f);

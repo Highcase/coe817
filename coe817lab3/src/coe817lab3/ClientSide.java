@@ -11,36 +11,36 @@ package coe817lab3;
  */
 import java.io.*;
 import java.net.*;
-import java.security.*;
-import java.security.spec.InvalidKeySpecException;
-
 import javax.crypto.*;
-import javax.crypto.spec.DESKeySpec;
 
 
 public class ClientSide {
-	
+    
     public static void main(String[] args)
     {
-        byte[] keyBytes, encryptedOutput, decryptedOutput = null, 
-                encryptedInput = null;
+        byte[]  cipherSent, cipherRecieved = null, 
+                decryptedOutput = null;
         String id = "INITIATOR A";
         String host = "localhost";
-        String km = "NETWORK SECURITY";
+        String PU_b = "NETWORK SECURITY";
+        String K_s = "TRISTANCOLLLINGS";
+        String filePath = "C:\\Users\\trist\\eclipse\\projects\\software\\"
+                + "coe817lab3\\src\\coe817lab3\\client_files\\"
+                + "Quiet-NASA-Transpo.jpg";
         int port = 5001;
-        SecretKey desKey;
-        Cipher desCipherObj = null;
-        SecretKeyFactory factory;
-        String plaintext;
+        SecretKey sessionKey;
+        SecretKey PUb;
+        String plainText;
+        int nonceSent, nonceRecieved, nonceTemp;
+        byte[] plainBytes;
         
         try {
              System.out.println("CLIENT");
             // Create key out of the string "NETWORK SECURITY".
             // This uses the DESKeySpec to create a key from text.
-            keyBytes =  km.getBytes();
-            factory = SecretKeyFactory.getInstance("DES");
-            desKey = factory.generateSecret(new DESKeySpec(keyBytes));
-            FileUtility.getFile("");
+            PUb = KeyUtility.getKey(PU_b);
+            // Generate Nonce.
+            nonceSent = KeyUtility.getNonce();
             // notify client of attempt to connect
             System.out.println("Connecting to " + host
                     + " on port " + port);
@@ -50,71 +50,131 @@ public class ClientSide {
             System.out.println("Connected to "
                     + client.getRemoteSocketAddress() +" success!" + "\n" );
             // print ID message sent.
-            System.out.println("Sending client ID to host: " + id + "\n");
+            System.out.println("Sending client ID and nonce encrypted with B's"
+                    + " public key PU_b " + "to host: \n"
+                    + "Nonce Generated: " + nonceSent + "\n"
+                            + "Client Id: " + id + " \n");
             // send ID to host.
             DataOutputStream out =
                     new DataOutputStream(client.getOutputStream());
-            out.writeUTF(id);
+            plainText = nonceSent + "|" + id;
+            cipherSent = KeyUtility.getDESCipher(PUb, 
+                    plainText.getBytes());
+            // send initial message.
+            KeyUtility.printMessageSent(plainText, cipherSent);
+            out.writeInt(cipherSent.length);
+            out.write(cipherSent);
             
-//-------------RECIEVE CIPHER FROM HOST THAT CONTAINS SESSION KEY---------------
+//-------------RECIEVE CIPHER FROM HOST THAT CONTAINS Nonces---------------
             //Recieve cipher from host.
             DataInputStream in =
                         new DataInputStream(client.getInputStream());
             // Read in length of incoming bytes.
             int duration = in.readInt();
             // initialize byte array to contain incoming byte stream.
-            if(duration > 0) encryptedInput = new byte[duration];
-            in.read(encryptedInput, 0, duration);
-            System.out.println("The following cipher was recieved: ");
-            System.out.println("Recieved cipher byte code: " + 
-                    encryptedInput.toString());
-            System.out.println("Recieved cipher string format: " + 
-                    new String(encryptedInput) + "\n");
-            System.out.println("Decrypting Cipher ...");
-            // Create DES Cipher instance for encryption/decryption. 
-            desCipherObj = Cipher.getInstance("DES/ECB/PKCS5Padding");
-            // set mode to decryption.
-            desCipherObj.init(Cipher.DECRYPT_MODE, desKey);
-           
-            // decrypt the message
-            decryptedOutput = desCipherObj.doFinal(encryptedInput);
-            //print to screen the decrypted message byte code.
-            System.out.println("Decrypted byte code " + 
-                    decryptedOutput.toString());
-            System.out.println("Decrypted string format: " + 
-                    new String(decryptedOutput) + "\n");
+            if(duration > 0) cipherRecieved = new byte[duration];
+            in.read(cipherRecieved, 0, duration);
             
-//-----------Using recieved SESSION KEY RYERSON TO SEND TO HOST----------------
+            // print encrypted cipher message to standardout.
+            KeyUtility.printRecievedCipher(cipherRecieved);
+            // print decrypted message to standardout
+            decryptedOutput = KeyUtility.getPlainBytesDES(PUb, cipherRecieved);
+            KeyUtility.printRecievedDecryption(decryptedOutput);
+            
+//-----------Using recieved Nonce to send back for authorization ---------------
             // parse incoming ciphertext for session key using regex.
-            String decryptedText = new String(decryptedOutput);
-            String[] decryptedArray = decryptedText.split("\\|");
+            plainText = new String(decryptedOutput);
+            String[] decryptedArray = plainText.split("\\|");
+
+            // get host's nonce from the decrpyted text.
+            nonceRecieved = Integer.parseInt(decryptedArray[1]);
+            // get authorization nonce;
+            nonceTemp = Integer.parseInt(decryptedArray[0]);
+            if(KeyUtility.confirmNonce(nonceSent, nonceTemp)){
+                // send to client the length of cipher in bytes, then the cipher
+                System.out.println("Send Nonce recieved from host for "
+                    + "idenitifaction encrypted using PU_b\n");
+                cipherSent = KeyUtility.getDESCipher(PUb, 
+                        decryptedArray[1].getBytes());
+                KeyUtility.printMessageSent((String)decryptedArray[1], 
+                        cipherSent);
+                out.writeInt(cipherSent.length);
+                out.write(cipherSent);
+            }else { return;}     
+////-----------------Send the encrypted secret key. ----------------------------
             
             // Create key out of the string recieved session key.
             // This uses the DESKeySpec to create a key from text.
-            keyBytes =  (decryptedArray[0]+ " ").getBytes();
-            factory = SecretKeyFactory.getInstance("DES");
-            desKey = factory.generateSecret(new DESKeySpec(keyBytes));
-           
-            // get host's ID from the decrpyted text.
-            encryptedOutput = decryptedArray[2].getBytes();
-      
-            desCipherObj.init(Cipher.ENCRYPT_MODE, desKey);
-            encryptedOutput = desCipherObj.doFinal(encryptedOutput);
-            
-            System.out.println("Extracted Session key: " + decryptedArray[0]);
-            System.out.println("Extracted host ID: " + decryptedArray[2]);
-            System.out.println("Sending Cipher ...\n");
+            sessionKey = KeyUtility.getKey((K_s));
+            cipherSent = KeyUtility.getDESCipher(PUb, K_s.getBytes());
             // send to client the length of cipher in bytes, then the cipher.
-            out.writeInt(encryptedOutput.length);
-            out.write(encryptedOutput);
+            System.out.println("Send secret session key which is a DES key"
+                    + " created from the string TRISTANCOLLINGS\n");
+            KeyUtility.printMessageSent(K_s, 
+                        cipherSent);
+            out.writeInt(cipherSent.length);
+            out.write(cipherSent);
+//----------------------session chat messages example --------------------------
+            String greetingMessage = "Hello how are you?";
+            nonceSent = KeyUtility.getNonce();
+            greetingMessage = greetingMessage + "|" + nonceSent;
+            cipherSent = KeyUtility.getDESCipher(sessionKey, 
+                    greetingMessage.getBytes());
+            KeyUtility.printMessageSent(greetingMessage, cipherSent);
+            out.writeInt(cipherSent.length);
+            out.write(cipherSent);
+//-------------------- Chat instances example-----------------------------------
+            duration = in.readInt();
+            // initialize byte array to contain incoming byte stream.
+            if(duration > 0) cipherRecieved = new byte[duration];
+            in.read(cipherRecieved, 0, duration);
+            // print encrypted cipher recieved.
+            KeyUtility.printRecievedCipher(cipherRecieved);
+            plainBytes = KeyUtility.getPlainBytesDES(sessionKey, 
+                    cipherRecieved);
+            KeyUtility.printRecievedDecryption(plainBytes);
             
+            //parse incoming ciphertext for session key using regex.
+            plainText = new String(plainBytes);
+            decryptedArray = plainText.split("\\|");
+            // Create key out of the string recieved session key.
+            // This uses the DESKeySpec to create a key from text.
+            System.out.println("Extracted Host Nonce: " + 
+                    decryptedArray[1] + "\n" + "Extracted authorization Nonce:"
+                            + decryptedArray[2]);
+            System.out.println("Extracted Client Message: " + decryptedArray[0] 
+                    + "\n");
+            nonceRecieved = Integer.parseInt(decryptedArray[1]);
+            nonceTemp = Integer.parseInt(decryptedArray[2]);
+            String hostMessage = decryptedArray[0];
+            KeyUtility.confirmNonce(nonceTemp, nonceSent);
+//-------------------------- Send encrypted image ------------------------------
+            FileInputStream file = new FileInputStream(filePath);
+            byte[] buffer = new byte [1024];
+            int i = 0;
+             while((duration=file.read(buffer)) != -1) {
+                i += 1;
+            }
+            file.close();
+            file = new FileInputStream(filePath);
+            System.out.println("The number of packets to be sent are:" + i);
+            out.writeInt(i);
+            while((duration=file.read(buffer)) != -1) {
+                System.out.println("coe817lab3.ClientSide.main()");
+                cipherSent = KeyUtility.getDESCipher(sessionKey, 
+                    buffer);
+                KeyUtility.printMessageSent("Buffer: " + i + "\n", cipherSent);
+                out.writeInt(cipherSent.length);
+                out.write(cipherSent);
+            }
+//-------------------------------close all connections--------------------------
             in.close();
             out.close();
-            client.close();   
-         } catch(IOException | InvalidKeyException | NoSuchAlgorithmException |
-                InvalidKeySpecException | IllegalBlockSizeException |
-               BadPaddingException | NoSuchPaddingException ex) {
-            System.out.println("Error has occured.");
+            client.close(); 
+//-------------------------------close all connections--------------------------
+
+         } catch(IOException ex) {
+            System.out.println("Error has during client proccess occured.");
             ex.printStackTrace();
         } 
     }
